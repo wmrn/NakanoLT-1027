@@ -1,9 +1,12 @@
 //classを使わないでとりあえず進める 10/18
-//LRに分けないでmixにして1つにまとめた
-//あとclass化したのをそのまま持ってきたからそれぞれの値がきれいにされたり、それぞれの値の名前を自分ように変更した
+//長さはmixを使わないで周波数帯？ごとの音量を使うようにした→これがフーリエ変換？使ってる？
+//太さはイヤホンの音量のデータを取るやり方を使った。
+//回転の部分はぶっちゃけ回ったなかったから排除した
+import ddf.minim.analysis.*;
 import ddf.minim.*;
 Minim minim;
 AudioPlayer player;
+FFT fft;
 
 //↓書くために必要な値
 int num ;//lineの合計の数
@@ -21,12 +24,6 @@ float [] Amix;//本来の波の振れ幅
 float difmix;
 float[] radian01;//球書くための角度
 float[] radian02;
-
-//↓回転させるのに必要な値
-float rot_x;//回転角度
-float rot_y;
-float rot_z;
-float range;//回転の角度の範囲
 
 //↓移動させるのに必要な値
 float centerX;//球の中心
@@ -52,12 +49,24 @@ size (700, 700, P3D);
   frameRate (60);
   
   minim=new Minim(this);
-  player=minim.loadFile("Bad Apple.mp3", 700);
+  player=minim.loadFile("Bad Apple.mp3", 1024);
   player.play();
   player.loop();
   
+  //FFTオブジェクトを作成。bufferSize()は1024、sampleRateは再生するサウンドのサンプリングレートによる。
+  //通常、44100Hzか22050Hz。このサンプルは22050Hz。
+  fft=new FFT(player.bufferSize(), player.sampleRate());
+  println("sampling reate is " +player.sampleRate());
+  println("spec size is " +fft.specSize());
+  println("bandwidth is: " +fft.getBandWidth());
+  //BandWidthにiを掛けると、それぞれ何番目のブロックに目当ての周波数が含まれるかが分かる。
+  //コンソール（一番したのエリア）を確認すること
+  for (int i = 0; i < fft.specSize (); i++) {  
+    println(i + " = " + fft.getBandWidth()*i + " ~ "+ fft.getBandWidth()*(i+1));
+  }
+  
   //↓書くのに必要な値の代入
-  num=700;//ブロック×2個
+  num=fft.specSize ();//ブロック×1個 fftの要素分だけlineを配置する
   xIn = new float[num];//lineの内と外の座標
   yIn = new float[num];
   zIn = new float[num];
@@ -67,28 +76,24 @@ size (700, 700, P3D);
   Amix = new float[num];//本来の波の振れ幅
   radian01 =  new float[num];//球書くための角度
   radian02 =  new float[num];
-  r = 200.0;
+  r = 150.0;//固定値
+  
   for (int i=1; i<num; i++) {
-    radian01[i] = random (360);
+    radian01[i] = random (360);//ここで一回設定してdrawの方で変更なし
     radian02[i] = random (360);
-    xIn[i] = r * cos (radians (radian01[i])) * sin (radians (radian02[i]));//個々の仕組み詳しく聞いてみる
+    
+    xIn[i] = r * cos (radians (radian01[i])) * sin (radians (radian02[i]));
     yIn[i] = r * sin (radians (radian01[i]));
     zIn[i] = r * cos (radians (radian01[i])) * cos (radians (radian02[i]));
   }
-
-  //↓回転させるのに必要な値の代入
-  rot_x = 0.0;
-  rot_y = 0.0;
-  rot_z = 0.0;
-  range = 4.0;
 
   //↓移動させるために必要な値の代入
   centerX=-100.0;//球の中心の座標
   centerY=-100.0;
   centerZ=-100.0;
   speedX=1.0;//球の移動速度
-  speedY=2.0;
-  speedZ=-3.0;
+  speedY=3.0;
+  speedZ=-5.0;
 
   //↓色を決めるために必要な値の代入
   red=new float [num];//線の一つ一つの色の配色
@@ -119,6 +124,7 @@ size (700, 700, P3D);
 
 void draw () {
 background (0);
+fft.forward(player.mix);//ここでフーリエ変換？の値を取得してる
   for (int i=0; i<num; i++) {
     camera (Amix[i]*300 - (700 / 2), Amix[i]*300 - (700 / 2), 0.0, width / 2, height / 2, 0.0, 0.0, 1.0, 0.0);
   }
@@ -146,56 +152,36 @@ background (0);
   }
 
 for (int i=0; i<num; i++) {
-    Amix[i]=player.mix.get(i);//音量の波の振れ幅のデータLRをmixに変えた
+   Amix[i]=fft.getBand(i);//フーリエ変換？使ってみた
 
     difmix = abs (Amix[i]*500 - xIn[i]);//absは絶対値を示す//内側の値との差を求めて線の長さを決めた
 
     R = (4000 / (difmix + 1)) + r + 1;//ここちょっとよくわかんないけど外側の基準値を設定した
 
-    //どんなに音がない時でも線が現れるようにここで+1しておく
     xOut[i] = R * cos (radians (radian01[i])) * sin (radians (radian02[i]));//ここの部分重要
     yOut[i] = R * sin (radians (radian01[i]));//ここの部分重要
     zOut[i] = R * cos (radians (radian01[i])) * cos (radians (radian02[i]));//ここの部分重要
     stroke (red[i], green[i], blue[i]);//(int (abs (x01[i])), int (abs (y01[i])), int (abs (z01[i])));
-    strokeWeight (Amix[i]*5);//振れ幅によって太さも変えてる。
+    strokeWeight (player.mix.get(i)*5);//太さはイヤホンのLRmixの音量のデータを取るやり方を使った。
     noFill ();
-    line (xIn[i], yIn[i], zIn[i], xOut[i], yOut[i], zOut[i]);
-  }
-  
-  rotateX (radians (rot_x));//x軸に沿って回転
-  rotateY (radians (rot_y));//y軸に沿って回転
-  rotateZ (radians (rot_z));//z軸に沿って回転
-  
-//offsetの値を0～heightの範囲から-range～rangeに置き換えた
-  for (int i=0; i<num; i++) {
-    rot_x += map (Amix[i], 0, width, -range, range);
-    rot_y += map (Amix[i], 0, height, -range, range);
-    rot_z += map (Amix[i], 0, width, -range, range);
+    line (xIn[i], yIn[i], zIn[i], xOut[i], yOut[i], zOut[i]);//長さはmixを使わないで周波数帯？ごとの音量を使うようにした→これがフーリエ変換？使ってる？
   }
   
   //線の色は値をある一定の分だけ増やしたり減らしたりする
-  colorR=1;//色のグラデーションのズレ
-   colorG=5;
-   colorB=10;
-   
-   red[0]=random(255);//初期値設定
-   green[0]=random(255);
-   blue[0]=random(255);
-
-  for (int i=1; i<num; i++) {
-   red[i]=red[i-1]-colorR;
+  for (int i=0; i<num; i++) {
+    red[i]-=colorR;
     if (red[i]<0) {
       colorR=-colorR;
     } else if (red[i]>255) {
       colorR=-colorR;
     }
-    green[i]=green[i-1]-colorG;
+    green[i]-=colorG;
     if (green[i]<0) {
       colorG=-colorG;
     } else if (green[i]>255) {
       colorG=-colorG;
     }
-    blue[i]=blue[i-1]-colorB;
+    blue[i]-=colorB;
     if (blue[i]<0) {
       colorB=-colorB;
     } else if (blue[i]>255) {

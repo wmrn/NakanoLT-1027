@@ -1,7 +1,5 @@
-//classを使わないでとりあえず進める 10/18
-//長さはmixを使わないで周波数帯？ごとの音量を使うようにした→これがフーリエ変換？使ってる？
-//太さはイヤホンの音量のデータを取るやり方を使った。
-//回転の部分はぶっちゃけ回ったなかったから排除した
+//classを使わないでとりあえず進める 10/21
+//色の配色を変えてみた
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 Minim minim;
@@ -37,9 +35,11 @@ float speedZ;
 float [] red;//線の一つ一つの色の配色
 float [] green;
 float [] blue;
-float colorR;//色の値を挙げる度合い？
-float colorG;
-float colorB;
+float Red;
+float Green;
+float Blue;
+float [] dif;
+int [] stage;
 
 
 void setup () {
@@ -99,27 +99,19 @@ size (700, 700, P3D);
   red=new float [num];//線の一つ一つの色の配色
   green=new float [num];
   blue =new float [num];
-  colorR=1;//色のグラデーションのズレ
-  colorG=5;
-  colorB=10;
-  
-  red[0]=random(255);//初期値設定
-  green[0]=random(255);
-  blue[0]=random(255);
-  for (int i=1; i<num; i++) {
-    red[i]=red[i-1]-colorR;
-    if (red[i]<0) {
-      red[i]=255;
-    }
-    green[i]=green[i-1]-colorG;
-    if (green[i]<0) {
-      green[i]=255;
-    } 
-    blue[i]=blue[i-1]-colorB;
-    if (blue[i]<0) {
-      blue[i]=255;
-    }
+  dif = new float [num];
+  stage = new int [4];
+  for (int i=0; i<4; i++) {
+    stage[i]=i;
   }
+  for (int i=0; i<num; i++) {
+    red[i]=0;
+    green[i]=0;
+    blue[i]=0;
+  }
+  Red=255;
+  Green=0;
+  Blue=0;
 }
 
 void draw () {
@@ -157,7 +149,7 @@ for (int i=0; i<num; i++) {
     difmix = abs (Amix[i]*500 - xIn[i]);//absは絶対値を示す//内側の値との差を求めて線の長さを決めた
 
     R = (4000 / (difmix + 1)) + r + 1;//ここちょっとよくわかんないけど外側の基準値を設定した
-
+    dif[i]=abs(R-r);//差の絶対値
     xOut[i] = R * cos (radians (radian01[i])) * sin (radians (radian02[i]));//ここの部分重要
     yOut[i] = R * sin (radians (radian01[i]));//ここの部分重要
     zOut[i] = R * cos (radians (radian01[i])) * cos (radians (radian02[i]));//ここの部分重要
@@ -167,29 +159,176 @@ for (int i=0; i<num; i++) {
     line (xIn[i], yIn[i], zIn[i], xOut[i], yOut[i], zOut[i]);//長さはmixを使わないで周波数帯？ごとの音量を使うようにした→これがフーリエ変換？使ってる？
   }
   
-  //線の色は値をある一定の分だけ増やしたり減らしたりする
-  for (int i=0; i<num; i++) {
-    red[i]-=colorR;
-    if (red[i]<0) {
-      colorR=-colorR;
-    } else if (red[i]>255) {
-      colorR=-colorR;
+    //線の色は差の絶対値をある範囲でグループ分けして、そのグループごとにグラデーションを行うようにした
+ for (int i=0; i<num; i++) {
+    if (15<=dif[i] && dif[i]<4000) {
+      red[i]=Red;
+      green[i]=Green;
+      blue[i]=Blue;
+      if (stage[0]==0) {
+        Green++;
+        if (Green>=255) {
+          stage[0]=1;
+          Green=255;
+        }
+      }
+      if (stage[0]==1) {
+        Red--;
+        if (Red<0) {
+          stage[0]=2;
+          Red=0;
+        }
+      }
+      if (stage[0]==2) {
+        Blue++;
+        if (Blue>255) {
+          stage[0]=3;
+          Blue=255;
+        }
+      }
+      if (stage[0]==3) {
+        Green--;
+        if (Green<0) {
+          stage[0]=4;
+          Green=0;
+        }
+      }
+      if (stage[0]==4) {
+        Red++;
+        if (Red>=255) {
+          stage[0]=0;
+          Red=255;
+          Blue=0;
+        }
+      }
     }
-    green[i]-=colorG;
-    if (green[i]<0) {
-      colorG=-colorG;
-    } else if (green[i]>255) {
-      colorG=-colorG;
+
+    if (7<=dif[i] && dif[i]<15) {
+      red[i]=Red;
+      green[i]=Green;
+      blue[i]=Blue;
+      if (stage[1]==0) {
+        Green++;
+        if (Green>=255) {
+          stage[1]=1;
+          Green=255;
+        }
+      }
+      if (stage[1]==1) {
+        Red--;
+        if (Red<0) {
+          stage[1]=2;
+          Red=0;
+        }
+      }
+      if (stage[1]==2) {
+        Blue++;
+        if (Blue>255) {
+          stage[1]=3;
+          Blue=255;
+        }
+      }
+      if (stage[1]==3) {
+        Green--;
+        if (Green<0) {
+          stage[1]=4;
+          Green=1;
+        }
+      }
+      if (stage[1]==4) {
+        Red++;
+        if (Red>=255) {
+          stage[1]=0;
+          Red=255;
+          Blue=0;
+        }
+      }
     }
-    blue[i]-=colorB;
-    if (blue[i]<0) {
-      colorB=-colorB;
-    } else if (blue[i]>255) {
-      colorB=-colorB;
+
+    if (3<=dif[i] && dif[i]<7) {
+      red[i]=Red;
+      green[i]=Green;
+      blue[i]=Blue;
+      if (stage[2]==0) {
+        Green++;
+        if (Green>=255) {
+          stage[2]=1;
+          Green=255;
+        }
+      }
+      if (stage[2]==1) {
+        Red--;
+        if (Red<0) {
+          stage[2]=2;
+          Red=0;
+        }
+      }
+      if (stage[2]==2) {
+        Blue++;
+        if (Blue>255) {
+          stage[2]=3;
+          Blue=255;
+        }
+      }
+      if (stage[2]==3) {
+        Green--;
+        if (Green<0) {
+          stage[2]=4;
+          Green=0;
+        }
+      }
+      if (stage[2]==4) {
+        Red++;
+        if (Red>=255) {
+          stage[2]=0;
+          Red=255;
+          Blue=0;
+        }
+      }
+    }
+    if (0<=dif[i] && dif[i]<3) {
+      red[i]=Red;
+      green[i]=Green;
+      blue[i]=Blue;
+      if (stage[3]==0) {
+        Green++;
+        if (Green>=255) {
+          stage[3]=1;
+          Green=255;
+        }
+      }
+      if (stage[3]==1) {
+        Red--;
+        if (Red<0) {
+          stage[3]=2;
+          Red=0;
+        }
+      }
+      if (stage[3]==2) {
+        Blue++;
+        if (Blue>255) {
+          stage[0]=3;
+          Blue=255;
+        }
+      }
+      if (stage[3]==3) {
+        Green--;
+        if (Green<0) {
+          stage[3]=4;
+          Green=0;
+        }
+      }
+      if (stage[3]==4) {
+        Red++;
+        if (Red>=255) {
+          stage[3]=0;
+          Red=255;
+          Blue=0;
+        }
+      }
     }
   }
 }
 void stop() {
   player.close();
 }
-

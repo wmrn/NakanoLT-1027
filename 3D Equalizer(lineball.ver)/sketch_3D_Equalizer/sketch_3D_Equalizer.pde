@@ -1,5 +1,5 @@
-//classを使わないでとりあえず進める 10/21
-//色の配色を変えてみた
+//classを使わないでとりあえず進める 10/26
+//前の色のところを整理した
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 Minim minim;
@@ -35,11 +35,11 @@ float speedZ;
 float [] red;//線の一つ一つの色の配色
 float [] green;
 float [] blue;
-float Red;
-float Green;
-float Blue;
-float [] dif;
-int [] stage;
+float [] Red;
+float [] Green;
+float [] Blue;
+float [] dif;//一つ一つのRとrの差の絶対値
+int [] stage;//色の変わる段階
 
 
 void setup () {
@@ -100,18 +100,21 @@ size (700, 700, P3D);
   green=new float [num];
   blue =new float [num];
   dif = new float [num];
-  stage = new int [4];
+  stage = new int [4];//difをある範囲で分けたグループの数が4
+  Red = new float [4];//stageのグループでそれぞれグラデーションを起こしてる
+  Green = new float [4];
+  Blue= new float [4];
   for (int i=0; i<4; i++) {
-    stage[i]=i;
+    stage[i]=i;//ここでstageごとで初期段階のズレをつくってる
+    Red[i]=150;
+    Green[i]=0;
+    Blue[i]=0;
   }
   for (int i=0; i<num; i++) {
     red[i]=0;
     green[i]=0;
     blue[i]=0;
   }
-  Red=255;
-  Green=0;
-  Blue=0;
 }
 
 void draw () {
@@ -160,171 +163,67 @@ for (int i=0; i<num; i++) {
   }
   
     //線の色は差の絶対値をある範囲でグループ分けして、そのグループごとにグラデーションを行うようにした
- for (int i=0; i<num; i++) {
-    if (15<=dif[i] && dif[i]<4000) {
-      red[i]=Red;
-      green[i]=Green;
-      blue[i]=Blue;
-      if (stage[0]==0) {
-        Green++;
-        if (Green>=255) {
-          stage[0]=1;
-          Green=255;
-        }
-      }
-      if (stage[0]==1) {
-        Red--;
-        if (Red<0) {
-          stage[0]=2;
-          Red=0;
-        }
-      }
-      if (stage[0]==2) {
-        Blue++;
-        if (Blue>255) {
-          stage[0]=3;
-          Blue=255;
-        }
-      }
-      if (stage[0]==3) {
-        Green--;
-        if (Green<0) {
-          stage[0]=4;
-          Green=0;
-        }
-      }
-      if (stage[0]==4) {
-        Red++;
-        if (Red>=255) {
-          stage[0]=0;
-          Red=255;
-          Blue=0;
-        }
-      }
+ for (int i=0; i<num; i++) {//ここでdifのグループ分け
+    if (100<=dif[i] && dif[i]<4000) {
+      red[i]=Red[0];
+      green[i]=Green[0];
+      blue[i]=Blue[0];
+    } else if (30<=dif[i] && dif[i]<100) {
+      red[i]=Red[1];
+      green[i]=Green[1];
+      blue[i]=Blue[1];
+    } else if (3<=dif[i] && dif[i]<30) {
+      red[i]=Red[2];
+      green[i]=Green[2];
+      blue[i]=Blue[2];
+    } else {
+      red[i]=Red[3];
+      green[i]=Green[3];
+      blue[i]=Blue[3];
     }
+  }
 
-    if (7<=dif[i] && dif[i]<15) {
-      red[i]=Red;
-      green[i]=Green;
-      blue[i]=Blue;
-      if (stage[1]==0) {
-        Green++;
-        if (Green>=255) {
-          stage[1]=1;
-          Green=255;
-        }
-      }
-      if (stage[1]==1) {
-        Red--;
-        if (Red<0) {
-          stage[1]=2;
-          Red=0;
-        }
-      }
-      if (stage[1]==2) {
-        Blue++;
-        if (Blue>255) {
-          stage[1]=3;
-          Blue=255;
-        }
-      }
-      if (stage[1]==3) {
-        Green--;
-        if (Green<0) {
-          stage[1]=4;
-          Green=1;
-        }
-      }
-      if (stage[1]==4) {
-        Red++;
-        if (Red>=255) {
-          stage[1]=0;
-          Red=255;
-          Blue=0;
-        }
-      }
+  for (int j=0; j<4; j++) {
+    if (stage[j]>4) {
+      stage[j]=0;
     }
+  }
 
-    if (3<=dif[i] && dif[i]<7) {
-      red[i]=Red;
-      green[i]=Green;
-      blue[i]=Blue;
-      if (stage[2]==0) {
-        Green++;
-        if (Green>=255) {
-          stage[2]=1;
-          Green=255;
-        }
-      }
-      if (stage[2]==1) {
-        Red--;
-        if (Red<0) {
-          stage[2]=2;
-          Red=0;
-        }
-      }
-      if (stage[2]==2) {
-        Blue++;
-        if (Blue>255) {
-          stage[2]=3;
-          Blue=255;
-        }
-      }
-      if (stage[2]==3) {
-        Green--;
-        if (Green<0) {
-          stage[2]=4;
-          Green=0;
-        }
-      }
-      if (stage[2]==4) {
-        Red++;
-        if (Red>=255) {
-          stage[2]=0;
-          Red=255;
-          Blue=0;
-        }
+  for (int i=0; i<4; i++) {//前の段階ではそれぞれの段階についてバラバラに書いてたのをまとめた
+    if (stage[i]==0) {
+      Green[i]++;
+      if (Green[i]>=180) {
+        stage[i]++;
+        Green[i]=180;
       }
     }
-    if (0<=dif[i] && dif[i]<3) {
-      red[i]=Red;
-      green[i]=Green;
-      blue[i]=Blue;
-      if (stage[3]==0) {
-        Green++;
-        if (Green>=255) {
-          stage[3]=1;
-          Green=255;
-        }
+    if (stage[i]==1) {
+      Red[i]--;
+      if (Red[i]<50) {
+        stage[i]++;
+        Red[i]=50;
       }
-      if (stage[3]==1) {
-        Red--;
-        if (Red<0) {
-          stage[3]=2;
-          Red=0;
-        }
+    }
+    if (stage[i]==2) {
+      Blue[i]++;
+      if (Blue[i]>180) {
+        stage[i]++;
+        Blue[i]=180;
       }
-      if (stage[3]==2) {
-        Blue++;
-        if (Blue>255) {
-          stage[0]=3;
-          Blue=255;
-        }
+    }
+    if (stage[i]==3) {
+      Green[i]--;
+      if (Green[i]<50) {
+        stage[i]++;
+        Green[i]=50;
       }
-      if (stage[3]==3) {
-        Green--;
-        if (Green<0) {
-          stage[3]=4;
-          Green=0;
-        }
-      }
-      if (stage[3]==4) {
-        Red++;
-        if (Red>=255) {
-          stage[3]=0;
-          Red=255;
-          Blue=0;
-        }
+    }
+    if (stage[i]==4) {
+      Red[i]++;
+      if (Red[i]>=180) {
+        stage[i]++;
+        Red[i]=180;
+        Blue[i]=50;
       }
     }
   }
